@@ -1,0 +1,33 @@
+name: Osmo
+options:
+  minimumXcodeGenVersion: 2.38.0
+  deploymentTarget:
+    macOS: "13.0"
+configs:
+  Debug: debug
+  Release: release
+targets:
+  Osmo:
+    type: application
+    platform: macOS
+    sources:
+      - AI
+      - Import
+      - Models
+      - Security
+      - Stores
+      - Theme
+      - ViewModels
+      - Views
+      - OsmoApp.swift
+    info:
+      path: Info.plist
+    configFiles:
+      Debug: Osmo.xcconfig
+      Release: Osmo.xcconfig
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.yourcompany.osmo
+        PRODUCT_NAME: Osmo
+        SWIFT_VERSION: "5.10"
+        INFOPLIST_FILE: Info.plist

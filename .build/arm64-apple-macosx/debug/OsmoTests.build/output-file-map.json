@@ -1,0 +1,19 @@
+{
+  "": {
+    "swift-dependencies": "/Users/sauravsz/The Hub/Osmo - The AI Bookmark Organiser/.build/arm64-apple-macosx/debug/OsmoTests.build/master.swiftdeps"
+  },
+  "/Users/sauravsz/The Hub/Osmo - The AI Bookmark Organiser/Tests/BookmarkImportServiceTests.swift": {
+    "dependencies": "/Users/sauravsz/The Hub/Osmo - The AI Bookmark Organiser/.build/arm64-apple-macosx/debug/OsmoTests.build/BookmarkImportServiceTests.d",
+    "object": "/Users/sauravsz/The Hub/Osmo - The AI Bookmark Organiser/.build/arm64-apple-macosx/debug/OsmoTests.build/BookmarkImportServiceTests.swift.o",
+    "swiftmodule": "/Users/sauravsz/The Hub/Osmo - The AI Bookmark Organiser/.build/arm64-apple-macosx/debug/OsmoTests.build/BookmarkImportServiceTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/sauravsz/The Hub/Osmo - The AI Bookmark Organiser/.build/arm64-apple-macosx/debug/OsmoTests.build/BookmarkImportServiceTests.swiftdeps",
+    "diagnostics": "/Users/sauravsz/The Hub/Osmo - The AI Bookmark Organiser/.build/arm64-apple-macosx/debug/OsmoTests.build/BookmarkImportServiceTests.dia"
+  },
+  "/Users/sauravsz/The Hub/Osmo - The AI Bookmark Organiser/Tests/URLNormalizerTests.swift": {
+    "dependencies": "/Users/sauravsz/The Hub/Osmo - The AI Bookmark Organiser/.build/arm64-apple-macosx/debug/OsmoTests.build/URLNormalizerTests.d",
+    "object": "/Users/sauravsz/The Hub/Osmo - The AI Bookmark Organiser/.build/arm64-apple-macosx/debug/OsmoTests.build/URLNormalizerTests.swift.o",
+    "swiftmodule": "/Users/sauravsz/The Hub/Osmo - The AI Bookmark Organiser/.build/arm64-apple-macosx/debug/OsmoTests.build/URLNormalizerTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/sauravsz/The Hub/Osmo - The AI Bookmark Organiser/.build/arm64-apple-macosx/debug/OsmoTests.build/URLNormalizerTests.swiftdeps",
+    "diagnostics": "/Users/sauravsz/The Hub/Osmo - The AI Bookmark Organiser/.build/arm64-apple-macosx/debug/OsmoTests.build/URLNormalizerTests.dia"
+  }
+}
