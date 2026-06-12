@@ -3,6 +3,17 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import useBookmarkStore from '../lib/store'
 
+const cosineSimilarity = (vecA, vecB) => {
+  if (!vecA || !vecB || vecA.length !== vecB.length) return 0
+  let dotProduct = 0, normA = 0, normB = 0
+  for (let i = 0; i < vecA.length; i++) {
+    dotProduct += vecA[i] * vecB[i]
+    normA += vecA[i] * vecA[i]
+    normB += vecB[i] * vecB[i]
+  }
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB))
+}
+
 const SUGGESTIONS = [
   'What technology bookmarks do I have?',
   'Find me bookmarks about AI or machine learning',
@@ -14,9 +25,11 @@ export default function AIChatPanel({ isOpen, onClose }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [isRagLoading, setIsRagLoading] = useState(false)
   const [error, setError] = useState(null)
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
+  const workerRef = useRef(null)
 
   const { bookmarks, apiKeys } = useBookmarkStore()
   const activeKey = apiKeys.openai || apiKeys.groq || process.env.NEXT_PUBLIC_GROQ_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY
@@ -26,9 +39,13 @@ export default function AIChatPanel({ isOpen, onClose }) {
   const isDragging = useRef(false)
 
   useEffect(() => {
+    workerRef.current = new Worker(new URL('../lib/embeddingWorker.js', import.meta.url), { type: 'module' })
+    return () => workerRef.current?.terminate()
+  }, [])
+
+  useEffect(() => {
     const handleMouseMove = (e) => {
       if (!isDragging.current) return
-      // Calculate width from the right edge of the screen
       const newWidth = Math.max(300, Math.min(window.innerWidth - e.clientX, 800))
       setPanelWidth(newWidth)
     }
@@ -54,7 +71,7 @@ export default function AIChatPanel({ isOpen, onClose }) {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, loading])
+  }, [messages, loading, isRagLoading])
 
   const sendMessage = async (text) => {
     const userText = (text || input).trim()
@@ -71,12 +88,34 @@ export default function AIChatPanel({ isOpen, onClose }) {
     setLoading(true)
 
     try {
+      setIsRagLoading(true)
+      const queryEmbedding = await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Embedding timeout')), 10000)
+        const handleMessage = (e) => {
+          if (e.data.status === 'complete' && e.data.id === 'chat_query') {
+            clearTimeout(timeout)
+            workerRef.current.removeEventListener('message', handleMessage)
+            resolve(e.data.embedding)
+          }
+        }
+        workerRef.current.addEventListener('message', handleMessage)
+        workerRef.current.postMessage({ text: userText, id: 'chat_query' })
+      })
+      setIsRagLoading(false)
+
+      const scoredBookmarks = bookmarks.map(b => ({
+        ...b,
+        similarity: b.embedding ? cosineSimilarity(queryEmbedding, b.embedding) : 0
+      })).sort((a, b) => b.similarity - a.similarity)
+      
+      const relevantBookmarks = scoredBookmarks.slice(0, 15)
+
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: newMessages,
-          bookmarks,
+          bookmarks: relevantBookmarks,
           apiKey: activeKey,
           provider: activeProvider,
         }),
@@ -94,8 +133,9 @@ export default function AIChatPanel({ isOpen, onClose }) {
       setMessages([...newMessages, { role: 'assistant', content: data.reply }])
     } catch (err) {
       setError(err.message)
-      setMessages(newMessages) // keep user message but remove it from "pending"
+      setMessages(newMessages)
     } finally {
+      setIsRagLoading(false)
       setLoading(false)
     }
   }
@@ -109,7 +149,6 @@ export default function AIChatPanel({ isOpen, onClose }) {
 
   const parseMarkdownLinks = (text) => {
     if (typeof text !== 'string') return text
-    // Bug #7: Allow one level of nested parentheses in URLs to support Wikipedia links
     const regex = /\[([^\]]+)\]\(((?:[^()]+|\([^()]*\))+)\)/g
     const parts = []
     let lastIndex = 0
@@ -134,7 +173,6 @@ export default function AIChatPanel({ isOpen, onClose }) {
   return (
     <>
       <AnimatePresence>
-      {/* Overlay for mobile/small screens */}
       {isOpen && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -146,7 +184,7 @@ export default function AIChatPanel({ isOpen, onClose }) {
           style={{
             position: 'fixed', inset: 0, zIndex: 30,
             background: 'rgba(0,0,0,0.1)',
-            display: 'block', // In real app, only show on mobile via media query
+            display: 'block',
           }}
         />
       )}
@@ -159,7 +197,6 @@ export default function AIChatPanel({ isOpen, onClose }) {
         className="chat-panel" 
         style={{ width: panelWidth }}
       >
-        {/* Resize handle */}
         <div
           style={{
             position: 'absolute', left: -4, top: 0, bottom: 0, width: 8,
@@ -171,7 +208,6 @@ export default function AIChatPanel({ isOpen, onClose }) {
             document.body.style.cursor = 'col-resize'
           }}
         />
-        {/* Header */}
         <div style={{
           padding: '1.25rem 1.5rem',
           borderBottom: '1px solid var(--border-glass)',
@@ -208,10 +244,8 @@ export default function AIChatPanel({ isOpen, onClose }) {
           </div>
         </div>
 
-        {/* Messages */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
-          {/* Welcome state */}
           {messages.length === 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
               <div style={{
@@ -249,7 +283,6 @@ export default function AIChatPanel({ isOpen, onClose }) {
             </div>
           )}
 
-          {/* Chat messages */}
           {messages.map((msg, i) => (
             <div
               key={i}
@@ -278,28 +311,17 @@ export default function AIChatPanel({ isOpen, onClose }) {
             </div>
           ))}
 
-          {/* Loading bubble */}
-          {loading && (
-            <div style={{ display: 'flex', justifyContent: 'flex-start', animation: 'fadeIn 0.2s ease' }}>
-              <div style={{
-                padding: '0.75rem 1rem',
-                background: 'var(--bg-glass)',
-                border: '1px solid var(--border-glass)',
-                borderRadius: '16px 16px 16px 4px',
-                display: 'flex', gap: '5px', alignItems: 'center',
-              }}>
-                {[0, 1, 2].map((d) => (
-                  <span key={d} style={{
-                    width: '7px', height: '7px', borderRadius: '50%',
-                    background: '#6366f1',
-                    animation: `bounce 1.2s ease-in-out ${d * 0.2}s infinite`,
-                  }} />
-                ))}
+          {(loading || isRagLoading) && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ alignSelf: 'flex-start', maxWidth: '85%' }}>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <div style={{ padding: '0.85rem 1rem', borderRadius: '14px', background: 'var(--bg-glass)', color: 'var(--text-muted)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid var(--border-glass)' }}>
+                  <span style={{ display: 'inline-block', width: '12px', height: '12px', border: '2px solid rgba(255,255,255,0.2)', borderTopColor: 'var(--accent-primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                  {isRagLoading ? 'Searching memory...' : 'Thinking...'}
+                </div>
               </div>
-            </div>
+            </motion.div>
           )}
 
-          {/* Error */}
           {error && (
             <div style={{
               padding: '0.75rem 1rem', background: 'rgba(239,68,68,0.08)',

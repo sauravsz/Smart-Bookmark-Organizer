@@ -150,7 +150,7 @@ export default function Home() {
     }
   }, [searchQuery])
 
-  const filtered = useMemo(() => {
+  const fuzzyFiltered = useMemo(() => {
     let result = getFilteredBookmarks()
     if (searchQuery) {
       const fuse = new Fuse(result, FUSE_OPTIONS)
@@ -159,20 +159,29 @@ export default function Home() {
     return result
   }, [getFilteredBookmarks, searchQuery])
 
-  // Trigger semantic search if fuzzy search returns nothing
+  // Trigger semantic search if fuzzy search returns nothing OR if it's a smart folder
   useEffect(() => {
-    if (searchQuery && filtered.length === 0 && workerRef.current) {
-      if (!semanticResults && !isSemanticLoading) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setIsSemanticLoading(true)
-        workerRef.current.postMessage({ text: searchQuery, id: 'search_query' })
+    if (searchQuery && workerRef.current) {
+      const isSmartFolder = activeView.startsWith('smart:')
+      if (isSmartFolder || fuzzyFiltered.length === 0) {
+        if (!semanticResults && !isSemanticLoading) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setIsSemanticLoading(true)
+          workerRef.current.postMessage({ text: searchQuery, id: 'search_query' })
+        }
       }
     }
-  }, [searchQuery, filtered.length, semanticResults, isSemanticLoading])
+  }, [searchQuery, fuzzyFiltered.length, semanticResults, isSemanticLoading, activeView])
+
+  const filtered = (activeView.startsWith('smart:') || (searchQuery && fuzzyFiltered.length === 0)) && semanticResults
+    ? semanticResults
+    : fuzzyFiltered
 
   const viewLabel = activeView.startsWith('category:')
     ? activeView.replace('category:', '')
-    : VIEW_LABELS[activeView] || 'All Bookmarks'
+    : activeView.startsWith('smart:')
+      ? smartFolders.find(f => f.id === activeView.replace('smart:', ''))?.name || 'Smart Folder'
+      : VIEW_LABELS[activeView] || 'All Bookmarks'
 
   if (!isMounted) return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>
 

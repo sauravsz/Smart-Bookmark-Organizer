@@ -53,9 +53,10 @@ const CATEGORY_ICONS = {
 export default function RootLayout({ children }) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isChatOpen, setIsChatOpen] = useState(false)
-  const [categoriesExpanded, setCategoriesExpanded] = useState(true)
-  const [sidebarWidth, setSidebarWidth] = useState(280)
   const [isMounted, setIsMounted] = useState(false)
+  const [sidebarWidth, setSidebarWidth] = useState(240)
+  const [categoriesExpanded, setCategoriesExpanded] = useState(true)
+  const [smartFoldersExpanded, setSmartFoldersExpanded] = useState(true)
   const isDraggingSidebar = useRef(false)
 
   // Register PWA Service Worker
@@ -453,6 +454,93 @@ export default function RootLayout({ children }) {
               >
                 ⚙ Settings
               </button>
+            </div>
+            {/* Smart Folders Section */}
+            <div style={{ marginTop: '0.5rem' }}>
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '0.25rem 0.25rem'
+              }}>
+                <button
+                  onClick={() => setSmartFoldersExpanded((v) => !v)}
+                  style={{
+                    fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase',
+                    letterSpacing: '0.06em', color: 'var(--text-muted)',
+                    background: 'transparent', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: '0.25rem'
+                  }}
+                >
+                  Smart Folders
+                  <span style={{ fontSize: '0.65rem', transition: 'transform 0.2s', transform: smartFoldersExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+                </button>
+                <button
+                  onClick={() => {
+                    const query = window.prompt("Enter a topic for your new Smart Folder (e.g. 'React UI Libraries'):")
+                    if (query && query.trim()) {
+                      useBookmarkStore.getState().addSmartFolder({
+                        id: Date.now().toString(),
+                        name: query.trim(),
+                        query: query.trim(),
+                        icon: '✨'
+                      })
+                    }
+                  }}
+                  style={{
+                    fontSize: '1rem', color: 'var(--text-muted)', background: 'transparent', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '4px'
+                  }}
+                  title="Create Smart Folder"
+                >
+                  +
+                </button>
+              </div>
+
+              {smartFoldersExpanded && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.4rem' }}>
+                  {smartFolders.map((folder) => {
+                    const viewId = `smart:${folder.id}`
+                    const active = activeView === viewId
+                    return (
+                      <button
+                        key={folder.id}
+                        onClick={() => {
+                          setActiveView(viewId)
+                          setSearchQuery(folder.query)
+                        }}
+                        onContextMenu={(e) => {
+                          e.preventDefault()
+                          if (window.confirm(`Delete Smart Folder "${folder.name}"?`)) {
+                            deleteSmartFolder(folder.id)
+                            if (active) setActiveView('all')
+                          }
+                        }}
+                        style={{
+                          width: '100%', textAlign: 'left',
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          padding: '0.45rem 0.75rem', borderRadius: 'var(--radius-sm)',
+                          background: active ? 'var(--active-nav-bg)' : 'transparent',
+                          border: active ? '1px solid var(--active-nav-border)' : '1px solid transparent',
+                          color: active ? 'var(--active-nav-text)' : 'var(--text-secondary)',
+                          fontSize: '0.825rem', cursor: 'pointer', transition: 'all 0.15s ease',
+                        }}
+                        title={`Query: ${folder.query}\nRight-click to delete`}
+                      >
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ fontSize: '0.9rem' }}>{folder.icon}</span>
+                          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px' }}>
+                            {folder.name}
+                          </span>
+                        </span>
+                      </button>
+                    )
+                  })}
+                  {smartFolders.length === 0 && (
+                    <div style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                      Click + to create an AI folder
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </aside>
 

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import useBookmarkStore from '../lib/store'
 import { exportAsCSV, exportAsHTML, parseCSV, parseHTML } from '../lib/bookmarkImport'
 import Toast from './Toast'
+import { encryptBookmarkData, decryptBookmarkData } from '../lib/crypto'
 
 const SectionHeading = ({ children }) => (
   <h3 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.75rem' }}>
@@ -101,28 +102,35 @@ export default function SettingsModal({ isOpen, onClose }) {
       config = { url: process.env.NEXT_PUBLIC_SUPABASE_URL, key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY }
     }
     if (!config?.url || !config?.key) return showToast('Please enter Supabase credentials first.', 'error')
-    showToast('Backing up to Supabase...', 'info')
+    
+    const pwd = window.sessionStorage.getItem('osmo_vault_pwd')
+    if (!pwd) return showToast('Please unlock your vault first to encrypt bookmarks.', 'error')
+
+    showToast('Encrypting and backing up to Supabase...', 'info')
     try {
       const { createClient } = await import('@supabase/supabase-js')
       const supabase = createClient(config.url, config.key)
       const currentBookmarks = useBookmarkStore.getState().bookmarks
       
-      const { error } = await supabase.from('bookmarks').upsert(currentBookmarks.map(b => ({
-        id: b.id,
-        url: b.url,
-        title: b.title,
-        description: b.description,
-        category: b.category,
-        tags: b.tags,
-        domain: b.domain,
-        date_added: new Date(b.dateAdded).toISOString(),
-        is_favorite: b.isFavorite || false,
-        is_read_later: b.isReadLater || false,
-        og_image: b.ogImage
-      })))
+      const { error } = await supabase.from('bookmarks').upsert(currentBookmarks.map(b => {
+        const encrypted = encryptBookmarkData(b, pwd)
+        return {
+          id: encrypted.id,
+          url: encrypted.encrypted_data ? 'ENCRYPTED' : b.url, // fallback logic
+          title: encrypted.encrypted_data ? 'ENCRYPTED' : b.title,
+          description: encrypted.encrypted_data ? 'ENCRYPTED' : b.description,
+          category: encrypted.encrypted_data ? 'ENCRYPTED' : b.category,
+          tags: encrypted.encrypted_data ? [] : b.tags,
+          domain: encrypted.domain,
+          date_added: new Date(encrypted.dateAdded).toISOString(),
+          is_favorite: encrypted.isFavorite || false,
+          is_read_later: encrypted.isReadLater || false,
+          og_image: encrypted.encrypted_data, // Using og_image column to store the encrypted ciphertext blob to avoid changing the schema
+        }
+      }))
       
       if (error) throw error
-      showToast(`Successfully backed up ${currentBookmarks.length} bookmarks!`, 'success')
+      showToast(`Successfully backed up ${currentBookmarks.length} encrypted bookmarks!`, 'success')
     } catch (err) {
       showToast(`Backup failed: ${err.message}`, 'error')
     }
@@ -134,7 +142,11 @@ export default function SettingsModal({ isOpen, onClose }) {
       config = { url: process.env.NEXT_PUBLIC_SUPABASE_URL, key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY }
     }
     if (!config?.url || !config?.key) return showToast('Please enter Supabase credentials first.', 'error')
-    showToast('Restoring from Supabase...', 'info')
+    
+    const pwd = window.sessionStorage.getItem('osmo_vault_pwd')
+    if (!pwd) return showToast('Please unlock your vault first to decrypt bookmarks.', 'error')
+
+    showToast('Fetching and decrypting from Supabase...', 'info')
     try {
       const { createClient } = await import('@supabase/supabase-js')
       const supabase = createClient(config.url, config.key)
@@ -143,28 +155,37 @@ export default function SettingsModal({ isOpen, onClose }) {
       if (error) throw error
       
       if (data && data.length > 0) {
-        const mapped = data.map(b => ({
-          id: b.id,
-          url: b.url,
-          title: b.title,
-          description: b.description,
-          category: b.category,
-          tags: b.tags,
-          domain: b.domain,
-          dateAdded: new Date(b.date_added).getTime(),
-          isFavorite: b.is_favorite,
-          isReadLater: b.is_read_later,
-          ogImage: b.og_image
-        }))
+        const mapped = data.map(b => {
+          const isEncrypted = b.url === 'ENCRYPTED'
+          const partialBookmark = {
+            id: b.id,
+            url: isEncrypted ? null : b.url,
+            title: isEncrypted ? null : b.title,
+            description: isEncrypted ? null : b.description,
+            category: isEncrypted ? null : b.category,
+            tags: isEncrypted ? null : b.tags,
+            domain: b.domain,
+            dateAdded: new Date(b.date_added).getTime(),
+            isFavorite: b.is_favorite,
+            isReadLater: b.is_read_later,
+            encrypted_data: isEncrypted ? b.og_image : null,
+            ogImage: isEncrypted ? null : b.og_image
+          }
+          return decryptBookmarkData(partialBookmark, pwd)
+        })
+        
         // Merge with local avoiding duplicates
         const existingIds = new Set(useBookmarkStore.getState().bookmarks.map(b => b.id))
-        const newOnes = mapped.filter(b => !existingIds.has(b.id))
-        if (newOnes.length > 0) {
-          useBookmarkStore.getState().addBookmarks(newOnes)
+        const newBookmarks = mapped.filter(b => !existingIds.has(b.id))
+        
+        if (newBookmarks.length > 0) {
+          useBookmarkStore.getState().addBookmarks(newBookmarks)
+          showToast(`Restored ${newBookmarks.length} bookmarks securely!`, 'success')
+        } else {
+          showToast('No new bookmarks to restore. You are fully synced.', 'info')
         }
-        showToast(`Restored ${newOnes.length} new bookmarks from cloud!`, 'success')
       } else {
-        showToast('No bookmarks found in cloud.', 'info')
+        showToast('No bookmarks found in Supabase.', 'info')
       }
     } catch (err) {
       showToast(`Restore failed: ${err.message}`, 'error')
