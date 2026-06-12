@@ -7,6 +7,43 @@ import AIChatPanel from '../components/AIChatPanel'
 import useBookmarkStore from '../lib/store'
 import MasterPasswordModal from '../components/MasterPasswordModal'
 
+const NavBtn = ({ id, label, icon, count, activeView, setActiveView }) => {
+  const active = activeView === id
+  return (
+    <motion.button
+      whileHover={{ scale: 1.015 }}
+      whileTap={{ scale: 0.96 }}
+      id={`nav-${id}`}
+      onClick={() => setActiveView(id)}
+      style={{
+        width: '100%', textAlign: 'left',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0.55rem 0.75rem', borderRadius: 'var(--radius-sm)',
+        background: active ? 'var(--active-nav-bg)' : 'transparent',
+        border: active ? '1px solid var(--active-nav-border)' : '1px solid transparent',
+        color: active ? 'var(--active-nav-text)' : 'var(--text-secondary)',
+        fontWeight: active ? 600 : 400, fontSize: '0.875rem',
+        cursor: 'pointer', transition: 'all 0.15s ease',
+      }}
+    >
+      <span style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        <span>{icon}</span>{label}
+      </span>
+      {count > 0 && (
+        <span style={{
+          fontSize: '0.7rem', fontWeight: 700,
+          background: active ? 'var(--active-count-bg)' : 'var(--bg-btn-secondary)',
+          color: active ? 'var(--active-count-text)' : 'var(--text-muted)',
+          padding: '0.1rem 0.45rem', borderRadius: 'var(--radius-full)',
+          minWidth: '20px', textAlign: 'center',
+        }}>
+          {count}
+        </span>
+      )}
+    </motion.button>
+  )
+}
+
 const CATEGORY_ICONS = {
   Technology: '💻', Design: '🎨', Business: '💼', Science: '🔬',
   News: '📰', Entertainment: '🎬', Education: '📚', Finance: '💰',
@@ -129,6 +166,7 @@ export default function RootLayout({ children }) {
     window.addEventListener('mousemove', handleMouseMove)
     window.addEventListener('mouseup', handleMouseUp)
     window.addEventListener('mouseleave', handleMouseLeave)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMounted(true)
     return () => {
       window.removeEventListener('mousemove', handleMouseMove)
@@ -158,43 +196,6 @@ export default function RootLayout({ children }) {
     { id: 'favorites',  label: 'Favorites',     icon: '★',  count: favCount },
     { id: 'read-later', label: 'Read Later',     icon: '⊕',  count: readLaterCount },
   ]
-
-  const NavBtn = ({ id, label, icon, count }) => {
-    const active = activeView === id
-    return (
-      <motion.button
-        whileHover={{ scale: 1.015 }}
-        whileTap={{ scale: 0.96 }}
-        id={`nav-${id}`}
-        onClick={() => setActiveView(id)}
-        style={{
-          width: '100%', textAlign: 'left',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '0.55rem 0.75rem', borderRadius: 'var(--radius-sm)',
-          background: active ? 'var(--active-nav-bg)' : 'transparent',
-          border: active ? '1px solid var(--active-nav-border)' : '1px solid transparent',
-          color: active ? 'var(--active-nav-text)' : 'var(--text-secondary)',
-          fontWeight: active ? 600 : 400, fontSize: '0.875rem',
-          cursor: 'pointer', transition: 'all 0.15s ease',
-        }}
-      >
-        <span style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <span>{icon}</span>{label}
-        </span>
-        {count > 0 && (
-          <span style={{
-            fontSize: '0.7rem', fontWeight: 700,
-            background: active ? 'var(--active-count-bg)' : 'var(--bg-btn-secondary)',
-            color: active ? 'var(--active-count-text)' : 'var(--text-muted)',
-            padding: '0.1rem 0.45rem', borderRadius: 'var(--radius-full)',
-            minWidth: '20px', textAlign: 'center',
-          }}>
-            {count}
-          </span>
-        )}
-      </motion.button>
-    )
-  }
 
   return (
     <html lang="en" data-theme={theme}>
@@ -234,7 +235,7 @@ export default function RootLayout({ children }) {
 
             {/* Main Nav */}
             <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-              {navItems.map((item) => <NavBtn key={item.id} {...item} />)}
+              {navItems.map((item) => <NavBtn key={item.id} {...item} activeView={activeView} setActiveView={setActiveView} />)}
             </nav>
 
             {/* Smart Collections */}

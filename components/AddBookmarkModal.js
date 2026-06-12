@@ -37,6 +37,7 @@ export default function AddBookmarkModal({ isOpen, onClose }) {
       const params = new URLSearchParams(window.location.search)
       const addUrl = params.get('add')
       if (addUrl) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setUrl(addUrl)
       }
     }
@@ -245,7 +246,7 @@ export default function AddBookmarkModal({ isOpen, onClose }) {
                     ⚠ Already saved
                   </p>
                   <p style={{ color: 'var(--text-secondary)' }}>
-                    You already have <strong>"{duplicate.title}"</strong> in your collection.
+                    You already have <strong>&quot;{duplicate.title}&quot;</strong> in your collection.
                   </p>
                   <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
                     <a

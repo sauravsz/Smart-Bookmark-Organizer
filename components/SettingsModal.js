@@ -5,6 +5,23 @@ import useBookmarkStore from '../lib/store'
 import { exportAsCSV, exportAsHTML, parseCSV, parseHTML } from '../lib/bookmarkImport'
 import Toast from './Toast'
 
+const SectionHeading = ({ children }) => (
+  <h3 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.75rem' }}>
+    {children}
+  </h3>
+)
+
+const KeyField = ({ id, label, placeholder, value, onChange, active, note }) => (
+  <div>
+    <label htmlFor={id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
+      <span>{label}</span>
+      {active && <span style={{ color: '#34d399', fontSize: '0.72rem' }}>● Active</span>}
+    </label>
+    <input id={id} type="password" className="glass-input" placeholder={placeholder} value={value} onChange={onChange} />
+    {note && <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>{note}</p>}
+  </div>
+)
+
 const TABS = [
   { id: 'ai',         label: '✦ AI',          title: 'AI Providers'    },
   { id: 'appearance', label: '🎨 Appearance', title: 'Theme Settings'  },
@@ -37,6 +54,7 @@ export default function SettingsModal({ isOpen, onClose }) {
 
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setOpenaiKey(apiKeys?.openai || '')
       setGroqKey(apiKeys?.groq || '')
       setTavilyKey(apiKeys?.tavily || '')
@@ -246,23 +264,6 @@ export default function SettingsModal({ isOpen, onClose }) {
     whiteSpace: 'nowrap',
   })
 
-  const SectionHeading = ({ children }) => (
-    <h3 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.75rem' }}>
-      {children}
-    </h3>
-  )
-
-  const KeyField = ({ id, label, placeholder, value, onChange, active, note }) => (
-    <div>
-      <label htmlFor={id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
-        <span>{label}</span>
-        {active && <span style={{ color: '#34d399', fontSize: '0.72rem' }}>● Active</span>}
-      </label>
-      <input id={id} type="password" className="glass-input" placeholder={placeholder} value={value} onChange={onChange} />
-      {note && <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>{note}</p>}
-    </div>
-  )
-
   return (
     <>
       <AnimatePresence>
@@ -308,7 +309,7 @@ export default function SettingsModal({ isOpen, onClose }) {
               <div>
                 <SectionHeading>AI Provider Keys</SectionHeading>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1.25rem', lineHeight: 1.6 }}>
-                  Keys are stored only in your browser's local storage.
+                  Keys are stored only in your browser&apos;s local storage.
                   {apiKeys.openai ? ' OpenAI is active (priority).' : apiKeys.groq ? ' Groq is active.' : ' No AI key — bookmarks saved without summaries.'}
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -334,7 +335,7 @@ export default function SettingsModal({ isOpen, onClose }) {
               <div>
                 <SectionHeading>Theme</SectionHeading>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
-                  Choose how Flame looks. "System" follows your OS setting.
+                  Choose how Flame looks. &quot;System&quot; follows your OS setting.
                 </p>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                   {[
@@ -451,7 +452,7 @@ export default function SettingsModal({ isOpen, onClose }) {
               <div>
                 <SectionHeading>Browser Extension Companion</SectionHeading>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1.25rem', lineHeight: 1.6 }}>
-                  Install the Flame Bookmarklet to save links instantly from any webpage. Drag the button below to your browser's bookmarks bar.
+                  Install the Flame Bookmarklet to save links instantly from any webpage. Drag the button below to your browser&apos;s bookmarks bar.
                 </p>
                 <div style={{ textAlign: 'center', padding: '2rem', background: 'var(--bg-glass)', borderRadius: '12px', border: '1px dashed var(--accent-primary)' }}>
                   <a 
@@ -527,7 +528,7 @@ export default function SettingsModal({ isOpen, onClose }) {
               <div>
                 <SectionHeading>Dead-Link Checker</SectionHeading>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1.25rem', lineHeight: 1.6 }}>
-                  Checks all {bookmarks.length} saved links with a HEAD request and flags any that return a 4xx/5xx error or don't respond. Broken bookmarks will show a red badge on their card.
+                  Checks all {bookmarks.length} saved links with a HEAD request and flags any that return a 4xx/5xx error or don&apos;t respond. Broken bookmarks will show a red badge on their card.
                 </p>
 
                 <button

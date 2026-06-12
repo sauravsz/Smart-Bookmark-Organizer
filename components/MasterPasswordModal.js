@@ -14,6 +14,7 @@ export default function MasterPasswordModal() {
   // But to keep it secure, we prompt for unlock if encryptedApiKeys exists and vault is locked.
   useEffect(() => {
     if (encryptedApiKeys && !isVaultUnlocked) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsVisible(true)
     } else {
       setIsVisible(false)

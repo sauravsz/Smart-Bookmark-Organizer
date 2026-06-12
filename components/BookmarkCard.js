@@ -42,6 +42,7 @@ export default function BookmarkCard({ bookmark, viewMode = 'grid', isSelected =
 
   const timeAgo = (isoString) => {
     if (!isoString) return ''
+    // eslint-disable-next-line react-hooks/purity
     const diff = Date.now() - new Date(isoString).getTime()
     const m = Math.floor(diff / 60000)
     if (m < 1) return 'Just now'

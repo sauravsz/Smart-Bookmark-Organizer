@@ -84,6 +84,7 @@ export default function Home() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMounted(true)
 
     // Initialize Embedding Worker
@@ -143,6 +144,7 @@ export default function Home() {
   // Reset semantic results if search clears
   useEffect(() => {
     if (!searchQuery) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSemanticResults(null)
       setIsSemanticLoading(false)
     }
@@ -152,20 +154,21 @@ export default function Home() {
     let result = getFilteredBookmarks()
     if (searchQuery) {
       const fuse = new Fuse(result, FUSE_OPTIONS)
-      const fuzzyMatches = fuse.search(searchQuery).map((res) => res.item)
-      
-      // If fuzzy returns nothing, trigger semantic search (if not already triggered)
-      if (fuzzyMatches.length === 0 && workerRef.current) {
-        if (!semanticResults && !isSemanticLoading) {
-          setIsSemanticLoading(true)
-          workerRef.current.postMessage({ text: searchQuery, id: 'search_query' })
-        }
-        return semanticResults || [] // Show semantic matches or empty while loading
-      }
-      return fuzzyMatches
+      return fuse.search(searchQuery).map((res) => res.item)
     }
     return result
-  }, [getFilteredBookmarks, searchQuery, semanticResults, isSemanticLoading])
+  }, [getFilteredBookmarks, searchQuery])
+
+  // Trigger semantic search if fuzzy search returns nothing
+  useEffect(() => {
+    if (searchQuery && filtered.length === 0 && workerRef.current) {
+      if (!semanticResults && !isSemanticLoading) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setIsSemanticLoading(true)
+        workerRef.current.postMessage({ text: searchQuery, id: 'search_query' })
+      }
+    }
+  }, [searchQuery, filtered.length, semanticResults, isSemanticLoading])
 
   const viewLabel = activeView.startsWith('category:')
     ? activeView.replace('category:', '')
@@ -268,7 +271,7 @@ export default function Home() {
               ) : (
                 <>
                   <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🔍</div>
-                  <p style={{ fontSize: '1.1rem', fontWeight: 500, color: 'var(--text-secondary)' }}>No results for "{searchQuery}"</p>
+                  <p style={{ fontSize: '1.1rem', fontWeight: 500, color: 'var(--text-secondary)' }}>No results for &quot;{searchQuery}&quot;</p>
                   <p style={{ marginTop: '0.5rem', fontSize: '0.875rem' }}>No fuzzy or conceptual matches found.</p>
                   <button onClick={() => setSearchQuery('')} className="btn-secondary" style={{ marginTop: '1rem', fontSize: '0.85rem' }}>
                     Clear search
